@@ -1,0 +1,613 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>行情狀態判讀盤</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117; --panel:#141b23; --line:#232d38; --line2:#2f3d4c;
+  --ink:#e3e9ef; --dim:#8896a4; --faint:#5c6875;
+  --read:#f0b429; --up:#3fa87a; --down:#d1595a; --flat:#6b7b8c;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --sans:'Noto Sans TC',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:28px 20px 64px}
+
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;
+  border-bottom:1px solid var(--line);padding-bottom:16px}
+.brand{flex:1 1 240px}
+.brand h1{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.14em;
+  margin:0;color:var(--read);text-transform:uppercase}
+.brand p{margin:2px 0 0;font-size:13px;color:var(--faint)}
+.ctl{display:flex;gap:8px;align-items:center}
+input,select,button{font-family:var(--mono);font-size:13px;background:var(--panel);
+  color:var(--ink);border:1px solid var(--line2);border-radius:3px;padding:7px 10px}
+input{width:120px;text-transform:uppercase}
+button{cursor:pointer;color:var(--read);border-color:#4a3c18}
+button:hover{background:#1c2129}
+button:focus-visible,input:focus-visible{outline:2px solid var(--read);outline-offset:1px}
+button[disabled]{opacity:.5;cursor:default}
+
+.stamp{font-family:var(--mono);font-size:11px;color:var(--faint);
+  letter-spacing:.08em;margin:14px 0 0}
+.err{border:1px solid #5a2b2b;background:#1e1315;color:#e8a5a5;border-radius:4px;
+  padding:14px 16px;font-size:14px;margin-top:18px}
+.err b{color:#f0b429;font-weight:500}
+.dg{display:inline-block;margin:8px 0;font-family:var(--mono);font-size:12px;
+  color:var(--dim);line-height:1.9}
+
+.paste{margin-top:18px}
+.lnk{background:none;border:0;padding:0;color:var(--dim);font-family:var(--mono);
+  font-size:12px;text-decoration:underline;text-underline-offset:3px}
+.lnk:hover{color:var(--read)}
+.hint{font-size:13px;color:var(--faint);margin:12px 0 0;max-width:64ch}
+textarea{width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line2);
+  border-radius:3px;padding:10px;font-family:var(--mono);font-size:12px;line-height:1.6;
+  resize:vertical}
+textarea:focus-visible{outline:2px solid var(--read);outline-offset:1px}
+
+.bigwrap{margin:24px 0 0;padding:18px 20px;background:var(--panel);
+  border:1px solid var(--line);border-radius:4px}
+.bigrow{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-top:6px}
+.bigword{font-family:var(--mono);font-size:32px;font-weight:700;letter-spacing:.02em}
+.chgs{font-family:var(--mono);font-size:12px;color:var(--dim);margin-left:auto}
+.chgs b{font-weight:500}
+.bigdetail{margin:8px 0 0;font-size:14px;color:var(--dim);max-width:62ch}
+.bigflag{margin:10px 0 0;font-family:var(--mono);font-size:12px;color:var(--read)}
+.quiet{margin:8px 0 0;font-size:13px;color:var(--faint)}
+.newsbox{margin:14px 0 0;padding:12px 14px;border:1px solid #4a3c18;
+  background:#1d1a10;border-radius:3px}
+.newsbox p{margin:0;font-size:13px;color:#e8d5a8}
+.newslinks{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.newslinks a{font-family:var(--mono);font-size:12px;color:var(--read);
+  text-decoration:underline;text-underline-offset:3px}
+
+.radar{margin:22px 0 0;padding:18px 20px;background:var(--panel);
+  border:1px solid var(--line);border-radius:4px}
+.rhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:6px}
+.rlabel{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--read)}
+.rcount{font-family:var(--mono);font-size:12px;color:var(--faint);margin-left:auto}
+.rsay{margin:8px 0 16px;font-size:14px;color:var(--dim);max-width:62ch}
+.ritem{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.ritem .dot{flex:none;width:8px;height:8px;border-radius:50%;margin-top:8px;
+  background:#2a3543;border:1px solid var(--line2)}
+.ritem.on .dot{background:var(--read);border-color:var(--read)}
+.rtitle{margin:0;font-size:14px;font-weight:500;color:var(--faint)}
+.ritem.on .rtitle{color:var(--ink)}
+.rtext{margin:2px 0 0;font-size:13px;color:var(--dim);max-width:60ch}
+.ritem:not(.on) .rtext{color:var(--faint)}
+
+.verdict{margin:22px 0 6px;padding:20px 0;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  color:var(--faint);text-transform:uppercase}
+.headline{font-family:var(--mono);font-size:clamp(26px,5.5vw,40px);font-weight:700;
+  letter-spacing:-.01em;margin:6px 0 4px;color:var(--read)}
+.sub{color:var(--dim);font-size:14px;max-width:62ch}
+
+.rows{margin:26px 0 0}
+.row{border-top:1px solid var(--line);padding:16px 0}
+.rowhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.tf{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.16em;
+  color:var(--faint);width:38px;flex:none}
+.state{font-family:var(--mono);font-size:15px;font-weight:500}
+.zh{font-family:var(--sans);font-size:14px;color:var(--dim)}
+.nums{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim);
+  display:flex;gap:16px;flex-wrap:wrap}
+.nums b{font-weight:500;color:var(--ink)}
+
+.gauge{margin:12px 0 0 50px;position:relative;height:34px}
+.track{position:absolute;top:13px;left:0;right:0;height:6px;background:#1b232c;
+  border:1px solid var(--line);border-radius:1px;overflow:hidden}
+.fill{position:absolute;top:0;bottom:0;left:0;background:#243240}
+.tick{position:absolute;top:8px;width:1px;height:16px;background:var(--line2)}
+.needle{position:absolute;top:4px;width:2px;height:24px;background:var(--read);
+  transition:left .4s ease}
+.gl{position:absolute;top:24px;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.gl.l{left:0}.gl.r{right:0}
+.note{margin:8px 0 0 50px;font-size:13px;color:var(--dim)}
+.note span{color:var(--read)}
+
+.chartbox{margin:30px 0 0;border:1px solid var(--line);border-radius:4px;
+  background:var(--panel);padding:14px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;
+  color:var(--dim);margin-bottom:10px}
+.legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px}
+.cv{position:relative;height:280px}
+
+.check{margin:30px 0 0;border-left:2px solid var(--read);padding:2px 0 2px 18px}
+.check h2{font-size:15px;font-weight:500;margin:0 0 10px}
+.check ul{list-style:none;margin:0;padding:0}
+.check li{padding:7px 0 7px 24px;position:relative;border-bottom:1px solid var(--line);
+  font-size:14px;color:var(--dim)}
+.check li:last-child{border:0}
+.check li::before{content:"□";position:absolute;left:0;color:var(--faint);
+  font-family:var(--mono)}
+.foot{margin:34px 0 0;padding-top:16px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--faint);max-width:66ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <h1>Regime Reader</h1>
+      <p>行情狀態判讀 · 多時間框架</p>
+    </div>
+    <div class="ctl">
+      <input id="sym" value="BTCUSDT" aria-label="交易對代號">
+      <select id="auto" aria-label="自動更新間隔">
+        <option value="0">手動</option>
+        <option value="60" selected>每 1 分</option>
+        <option value="300">每 5 分</option>
+      </select>
+      <button id="go">重新讀取</button>
+    </div>
+  </div>
+  <p class="stamp" id="stamp">尚未讀取</p>
+  <div id="err"></div>
+
+  <div class="paste">
+    <button id="toggle" class="lnk" aria-expanded="false">貼上資料(MT5 匯出 / 任何 OHLC 表格)</button>
+    <div id="pastebox" hidden>
+      <p class="hint">MT5 圖表上按右鍵 → 儲存為,或用 Ctrl+S 匯出 CSV,再把內容整段貼進來。
+        每行需要至少含最高、最低、收盤三個欄位,由舊到新排列。至少 210 行。</p>
+      <div class="ctl" style="margin:10px 0">
+        <select id="ptf" aria-label="這批資料的時間框架">
+          <option>M15</option><option selected>H1</option><option>H4</option>
+          <option>M5</option><option>D1</option>
+        </select>
+        <button id="prun">分析這批資料</button>
+      </div>
+      <textarea id="ptxt" rows="6" spellcheck="false"
+        placeholder="2026.08.19&#9;09:00&#9;62150&#9;62480&#9;62030&#9;62410&#9;1234"></textarea>
+    </div>
+  </div>
+
+  <div class="bigwrap">
+    <div class="eyebrow">日線大方向</div>
+    <div id="bigbox"><p class="quiet">讀取後顯示。</p></div>
+  </div>
+
+  <div class="radar">
+    <div class="eyebrow">大行情雷達</div>
+    <div class="rhead" id="radarhead"><span class="rlabel">—</span></div>
+    <p class="rsay" id="radarsay">讀取後顯示。</p>
+    <div id="radarlist"></div>
+  </div>
+
+  <div class="verdict">
+    <div class="eyebrow">綜合判讀</div>
+    <div class="headline" id="head">—</div>
+    <div class="sub" id="subline">按「重新讀取」開始。資料來自幣安公開行情,不需要金鑰。</div>
+  </div>
+
+  <div class="rows" id="rows"></div>
+
+  <div class="chartbox">
+    <div class="legend">
+      <span><i style="background:#e3e9ef"></i>收盤</span>
+      <span><i style="background:#f0b429"></i>EMA20</span>
+      <span><i style="background:#3fa87a"></i>EMA50</span>
+      <span><i style="background:#6b7b8c"></i>EMA200</span>
+    </div>
+    <div class="cv">
+      <canvas id="ch" role="img" aria-label="價格與均線走勢圖">價格與 EMA20、EMA50、EMA200 走勢。</canvas>
+    </div>
+  </div>
+
+  <div class="check">
+    <h2>你該自己確認的</h2>
+    <ul id="list"><li>讀取資料後,這裡會依當前狀態列出檢查項目。</li></ul>
+  </div>
+
+  <p class="foot">這個頁面描述市場已經發生的狀態,不預測方向、不產生買賣訊號。所有指標都是落後指標;進場與否、停損位置、部位大小仍然由你自己決定。</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const TFS=[{n:'H4',min:240},{n:'H1',min:60},{n:'M15',min:15}];
+const BIG={n:'D1',min:1440};
+let timer=null,chart=null,srcUsed='',diag=[];
+
+const IV={
+ bn:{15:'15m',60:'1h',240:'4h',1440:'1d'},
+ by:{15:'15',60:'60',240:'240',1440:'D'},
+ ok:{15:'15m',60:'1H',240:'4H',1440:'1D'}
+};
+
+const SOURCES=[
+ {name:'Binance',
+  url:(s,m)=>`https://data-api.binance.vision/api/v3/klines?symbol=${s}&interval=${IV.bn[m]}&limit=400`,
+  parse:j=>j.map(r=>({t:+r[0],h:+r[2],l:+r[3],c:+r[4]}))},
+ {name:'Binance 主站',
+  url:(s,m)=>`https://api.binance.com/api/v3/klines?symbol=${s}&interval=${IV.bn[m]}&limit=400`,
+  parse:j=>j.map(r=>({t:+r[0],h:+r[2],l:+r[3],c:+r[4]}))},
+ {name:'Bybit',
+  url:(s,m)=>`https://api.bybit.com/v5/market/kline?category=spot&symbol=${s}&interval=${IV.by[m]}&limit=1000`,
+  parse:j=>{if(j.retCode)throw new Error(j.retMsg||'代號不存在');
+    return j.result.list.map(r=>({t:+r[0],h:+r[2],l:+r[3],c:+r[4]})).reverse()}},
+ {name:'OKX',
+  url:(s,m)=>`https://www.okx.com/api/v5/market/candles?instId=${s.replace(/USDT$/,'-USDT').replace(/USD$/,'-USD')}&bar=${IV.ok[m]}&limit=300`,
+  parse:j=>{if(j.code&&j.code!=='0')throw new Error(j.msg||'代號不存在');
+    return j.data.map(r=>({t:+r[0],h:+r[2],l:+r[3],c:+r[4]})).reverse()}},
+ {name:'Coinbase',
+  url:(s,m)=>`https://api.exchange.coinbase.com/products/${s.replace(/USDT$/,'-USD').replace(/USD$/,'-USD')}/candles?granularity=${m*60}`,
+  parse:j=>j.map(r=>({t:r[0]*1000,h:+r[2],l:+r[1],c:+r[4]})).reverse()}
+];
+
+const ema=(a,n)=>{const k=2/(n+1);let p=a[0];return a.map((v,i)=>p=i?v*k+p*(1-k):v)};
+const wilder=(a,n)=>{const k=1/n;let p=a[0];return a.map((v,i)=>p=i?v*k+p*(1-k):v)};
+
+function trueRange(h,l,c){return h.map((v,i)=>i?Math.max(v-l[i],Math.abs(v-c[i-1]),Math.abs(l[i]-c[i-1])):v-l[i])}
+
+function adx(h,l,c,n=14){
+  const tr=wilder(trueRange(h,l,c),n),pdm=[],ndm=[];
+  for(let i=0;i<h.length;i++){
+    if(!i){pdm.push(0);ndm.push(0);continue}
+    const u=h[i]-h[i-1],d=l[i-1]-l[i];
+    pdm.push(u>d&&u>0?u:0);ndm.push(d>u&&d>0?d:0);
+  }
+  const p=wilder(pdm,n),m=wilder(ndm,n),dx=[];
+  for(let i=0;i<h.length;i++){
+    const pi=100*p[i]/tr[i],mi=100*m[i]/tr[i],s=pi+mi;
+    dx.push(s?100*Math.abs(pi-mi)/s:0);
+  }
+  return {adx:wilder(dx,n),atr:tr};
+}
+
+function bbw(c,n=20){
+  return c.map((_,i)=>{
+    if(i<n-1)return NaN;
+    const w=c.slice(i-n+1,i+1),m=w.reduce((a,b)=>a+b)/n;
+    const sd=Math.sqrt(w.reduce((a,b)=>a+(b-m)**2,0)/n);
+    return 4*sd/m*100;
+  });
+}
+
+function analyse(k){
+  const c=k.map(r=>r.c),h=k.map(r=>r.h),l=k.map(r=>r.l);
+  const e20=ema(c,20),e50=ema(c,50),e200=ema(c,200);
+  const {adx:A,atr}=adx(h,l,c);
+  const W=bbw(c),i=c.length-1;
+  const price=c[i],a=A[i],atrPct=atr[i]/price*100,w=W[i];
+  const hist=W.slice(-100).filter(v=>!isNaN(v));
+  const rank=hist.filter(v=>v<w).length/hist.length;
+  const stack=e20[i]>e50[i]&&e50[i]>e200[i]?'多頭排列':
+              e20[i]<e50[i]&&e50[i]<e200[i]?'空頭排列':'糾結';
+  const hi=Math.max(...h.slice(-50)),lo=Math.min(...l.slice(-50));
+  const pos=hi>lo?(price-lo)/(hi-lo):.5;
+
+  let key,zh;
+  if(a>=25&&stack==='多頭排列'){key='TREND_UP';zh='上升趨勢'}
+  else if(a>=25&&stack==='空頭排列'){key='TREND_DOWN';zh='下降趨勢'}
+  else if(rank<0.15){key='SQUEEZE';zh='擠壓待變'}
+  else if(a>=25){key='EXPANSION';zh='方向未定的擴張'}
+  else if(a<20){key='RANGE';zh='盤整'}
+  else{key='TRANSITION';zh='過渡'}
+
+  const notes=[];
+  if(rank>0.9)notes.push('波動處於近期高位,追單風險大');
+  if(pos>0.85)notes.push('價格貼近區間上緣');
+  if(pos<0.15)notes.push('價格貼近區間下緣');
+  if(atrPct>1.5)notes.push(`ATR 佔價格 ${atrPct.toFixed(2)}%,固定點數停利需放大`);
+
+  return {key,zh,price,adx:a,atrPct,rank,stack,hi,lo,pos,notes,c,e20,e50,e200,
+          atr:atr,tr:trueRange(h,l,c),bbw:W,h:h,l:l,t:k.map(r=>r.t)};
+}
+
+const CHECK={
+ TREND_UP:['回檔到 EMA20 或 EMA50 有沒有出現止跌型態?','前高被突破後,有沒有回測不破?','大週期結構是否還是高點越高、低點越低?'],
+ TREND_DOWN:['反彈到 EMA20/50 有沒有出現受阻?','前低跌破後回測是否失敗?','大週期是否已經跌到明顯支撐?'],
+ RANGE:['區間上下緣是否各被測試過兩次以上?','現在的位置離邊界夠近嗎?在中間進場報酬風險比很差','雙向對沖的兩腳停利距離,是否小於區間寬度的一半?'],
+ SQUEEZE:['擠壓已經持續幾根 K?越久突破通常越猛','不預設突破方向,等實體收破再說','假突破的停損位置想好了嗎?'],
+ EXPANSION:['這根大 K 是消息造成的嗎?消息盤不適用型態規則','等第一次回檔,不要追第一根'],
+ TRANSITION:['狀態不明時,最好的動作通常是不動']
+};
+
+const COLOR={TREND_UP:'var(--up)',TREND_DOWN:'var(--down)',SQUEEZE:'var(--read)',
+             EXPANSION:'var(--read)',RANGE:'var(--flat)',TRANSITION:'var(--flat)'};
+
+function verdict(s){
+  const ks=TFS.map(t=>s[t.n].key),u=[...new Set(ks)];
+  if(u.length===1)return[s[ks[0]==='TREND_UP'?'H4':'H4'].zh,`三個時間框架同為「${s.H4.zh}」,環境單純,規則的適用性最高。`];
+  if(ks.every(k=>k==='TREND_UP'))return['方向一致 · 多','三框全多,一致度最高。'];
+  if(u.length===ks.length)return['三框分歧',`H4 ${s.H4.zh}、H1 ${s.H1.zh}、M15 ${s.M15.zh} —— 一致度最低,這通常是最容易被雙巴的環境。`];
+  return[`${s.H4.zh} · 部分一致`,`大週期為 ${s.H4.zh},小週期為 ${s.M15.zh}。以大週期定方向、小週期找位置。`];
+}
+
+async function tryOne(src,sym,min){
+  const bars=await Promise.race([
+    fetch(src.url(sym,min)).then(async r=>{
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return src.parse(await r.json());
+    }),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error('逾時')),9000))
+  ]);
+  if(!bars||bars.length<210)throw new Error(`只有 ${bars?bars.length:0} 根 K,不足 210`);
+  return bars;
+}
+
+async function fetchAll(sym){
+  diag=[];
+  for(const src of SOURCES){
+    try{
+      const out={};
+      for(const t of TFS)out[t.n]=analyse(await tryOne(src,sym,t.min));
+      try{out.D1=analyse(await tryOne(src,sym,BIG.min))}catch(_){out.D1=null}
+      srcUsed=src.name;
+      diag.push(`${src.name} 成功`);
+      return out;
+    }catch(e){
+    const msg=e.name==='AbortError'?'逾時':
+              e instanceof TypeError?'連線被擋(CORS 或網路封鎖)':e.message;
+    diag.push(`${src.name} 失敗 — ${msg}`);
+    }
+  }
+  throw new Error('所有來源都失敗');
+}
+
+function bigPicture(d){
+  const c=d.c,i=c.length-1;
+  const chg=n=>i-n>=0?(c[i]/c[i-n]-1)*100:NaN;
+  const c24=chg(1),c7=chg(7),c30=chg(30);
+  const move=(c[i]-c[i-1])/d.atr[i];          // 最後一根相對於常態波動的倍數
+  const atrNow=d.atr[i];
+  const med=[...d.atr.slice(-60)].sort((a,b)=>a-b)[30];
+  const volSpike=atrNow/med;
+
+  let label,tone,detail;
+  if(move<=-2){label='急殺';tone='down';
+    detail=`最後一根日 K 跌幅是常態波動的 ${Math.abs(move).toFixed(1)} 倍。這種幅度通常有消息面推動,型態規則在消息盤上不適用。`}
+  else if(move>=2){label='急漲';tone='up';
+    detail=`最後一根日 K 漲幅是常態波動的 ${move.toFixed(1)} 倍。急拉之後常有回吐,追第一根風險最高。`}
+  else if(d.key==='TREND_UP'){label='上漲';tone='up';
+    detail='日線多頭排列且 ADX 有強度,回檔找買點的環境。'}
+  else if(d.key==='TREND_DOWN'){label='下跌';tone='down';
+    detail='日線空頭排列且 ADX 有強度,反彈找空點的環境。'}
+  else if(d.key==='SQUEEZE'){label='壓縮待變';tone='flat';
+    detail='日線波動壓到近期低位。這種狀態常是大行情的前夜,但方向無法預判。'}
+  else{label='盤整';tone='flat';
+    detail='日線沒有明確方向,ADX 偏低。區間操作的環境,追突破容易被巴。'}
+
+  const flags=[];
+  if(volSpike>2)flags.push(`波動放大到中位數的 ${volSpike.toFixed(1)} 倍`);
+  if(Math.abs(c24)>5)flags.push(`24 小時變動 ${c24>0?'+':''}${c24.toFixed(1)}%`);
+  const newsy=Math.abs(move)>=2||volSpike>2||Math.abs(c24)>5;
+
+  return {label,tone,detail,c24,c7,c30,flags,newsy};
+}
+
+function radar(s){
+  const d=s.D1||s.H4,h4=s.H4;
+  // 壓縮:拿更長的歷史當基準,否則壓縮期自己會把門檻拉低
+  const W=d.bbw.filter(v=>!isNaN(v)),ref=[...W.slice(-250)].sort((a,b)=>a-b);
+  const p25=ref[Math.floor(ref.length*0.25)];
+  let quiet=0;
+  for(let i=W.length-1;i>=0&&W[i]<=p25;i--)quiet++;
+
+  // 突破:拿「不含當根」的前 50 根極值來比,才知道是不是真的創新高低
+  const n=h4.c.length;
+  const prevHi=Math.max(...h4.h.slice(n-51,n-1));
+  const prevLo=Math.min(...h4.l.slice(n-51,n-1));
+  const broke=h4.price>prevHi?'up':h4.price<prevLo?'down':null;
+  const near=(prevHi-h4.price)/h4.price*100, nearLo=(h4.price-prevLo)/h4.price*100;
+
+  const dirs=TFS.map(t=>s[t.n].key);
+  const aligned=dirs.every(k=>k==='TREND_UP')?'up':
+                dirs.every(k=>k==='TREND_DOWN')?'down':null;
+
+  // 震幅:用最後一根的實際振幅比中位數,平滑後的 ATR 反應不出單根急殺
+  const med=[...d.atr.slice(-60)].sort((a,b)=>a-b)[30];
+  const spike=d.tr[d.tr.length-1]/med;
+
+  const items=[
+   {on:quiet>=5,
+    title:'行情被壓縮很久了',
+    on_txt:`已經連續 ${quiet} 根日 K 幾乎不動。市場越安靜,累積的能量越大,通常接下來會有一段像樣的行情。`,
+    off_txt:'波動還算正常,沒有明顯的壓縮。'},
+   {on:!!broke,
+    title:broke==='down'?'剛跌破近期低點':'剛突破近期高點',
+    on_txt:broke==='down'?'價格站上了四小時圖近 50 根的最低點以下,這是行情已經開跑的訊號,不是準備而已。':
+      '價格衝過了四小時圖近 50 根的最高點,行情已經在跑了。',
+    off_txt:`還在區間內走,離上緣 ${near.toFixed(1)}%、離下緣 ${nearLo.toFixed(1)}%。越靠近邊界越要留意。`},
+   {on:!!aligned,
+    title:aligned==='down'?'三個週期一起往下':'三個週期一起往上',
+    on_txt:'日內到中期的方向全部同一邊。這種時候順著走最省力,逆著做最容易受傷。',
+    off_txt:'幾個週期方向不一致,大行情通常還沒成形。這種盤最容易兩邊被巴。'},
+   {on:spike>2,
+    title:'波動突然變大',
+    on_txt:`現在的震幅是平常的 ${spike.toFixed(1)} 倍。這種變化多半是有消息,先去看新聞再決定動不動手。`,
+    off_txt:'震幅在平常範圍,沒有突發狀況的跡象。'}
+  ];
+
+  const lit=items.filter(i=>i.on).length;
+  const verdicts=[
+    ['目前沒有大行情','市場安靜,四個訊號都沒亮。這種時候最好的動作通常是等,或用小部位做區間。'],
+    ['有一點苗頭','亮了一個訊號,還不足以說有大行情。可以開始留意,但不急著進場。'],
+    ['行情可能要來了','亮了兩個訊號。條件在聚集,先想好如果啟動你要怎麼做、停損放哪。'],
+    ['大行情正在發生','亮了三個訊號。方向已經明確,重點變成怎麼跟上而不是要不要跟。'],
+    ['大行情全面啟動','四個訊號全亮。走勢很強,但也代表你已經不是最早進場的那批人,追價要更小心。']
+  ];
+  return {items,n:lit,label:verdicts[lit][0],say:verdicts[lit][1]};
+}
+
+function rowHTML(t,d){
+  return `<div class="row">
+      <div class="rowhead">
+        <span class="tf">${t.n}</span>
+        <span class="state" style="color:${COLOR[d.key]}">${d.key}</span>
+        <span class="zh">${d.zh} · EMA ${d.stack}</span>
+        <span class="nums">
+          <span>ADX <b>${d.adx.toFixed(1)}</b></span>
+          <span>ATR <b>${d.atrPct.toFixed(2)}%</b></span>
+          <span>帶寬位階 <b>${Math.round(d.rank*100)}%</b></span>
+        </span>
+      </div>
+      <div class="gauge">
+        <div class="track">
+          <div class="fill" style="width:${Math.round(d.pos*100)}%"></div>
+        </div>
+        <div class="tick" style="left:20%"></div>
+        <div class="tick" style="left:50%"></div>
+        <div class="tick" style="left:80%"></div>
+        <div class="needle" style="left:calc(${Math.round(d.pos*100)}% - 1px)"></div>
+        <span class="gl l">${Math.round(d.lo).toLocaleString()}</span>
+        <span class="gl r">${Math.round(d.hi).toLocaleString()}</span>
+      </div>
+      ${d.notes.map(n=>`<p class="note"><span>·</span> ${n}</p>`).join('')}
+    </div>`;
+}
+
+function render(s){
+  const [big,sub]=verdict(s);
+  document.getElementById('head').textContent=big;
+  document.getElementById('subline').textContent=sub;
+  document.getElementById('rows').innerHTML=TFS.map(t=>rowHTML(t,s[t.n])).join('');
+  const k=s.M15.key;
+  document.getElementById('list').innerHTML=(CHECK[k]||[]).map(q=>`<li>${q}</li>`).join('');
+  drawChart(s.H1,true);
+  if(s.D1)renderBig(bigPicture(s.D1),document.getElementById('sym').value.trim().toUpperCase());
+  renderRadar(radar(s));
+}
+
+function renderRadar(r){
+  document.getElementById('radarhead').innerHTML=
+    `<span class="rlabel">${r.label}</span><span class="rcount">${r.n} / 4 個訊號</span>`;
+  document.getElementById('radarsay').textContent=r.say;
+  document.getElementById('radarlist').innerHTML=r.items.map(i=>`
+    <div class="ritem ${i.on?'on':''}">
+      <span class="dot"></span>
+      <div>
+        <p class="rtitle">${i.on?i.title:'—'}</p>
+        <p class="rtext">${i.on?i.on_txt:i.off_txt}</p>
+      </div>
+    </div>`).join('');
+}
+
+function renderBig(b,sym){
+  const col={up:'var(--up)',down:'var(--down)',flat:'var(--flat)'}[b.tone];
+  const pc=v=>isNaN(v)?'—':`<b style="color:${v>0?'var(--up)':v<0?'var(--down)':'var(--dim)'}">${v>0?'+':''}${v.toFixed(1)}%</b>`;
+  const q=encodeURIComponent(sym.replace(/USDT?$/,'')+' 價格 新聞');
+  document.getElementById('bigbox').innerHTML=`
+    <div class="bigrow">
+      <span class="bigword" style="color:${col}">${b.label}</span>
+      <span class="chgs">24H ${pc(b.c24)} · 7D ${pc(b.c7)} · 30D ${pc(b.c30)}</span>
+    </div>
+    <p class="bigdetail">${b.detail}</p>
+    ${b.flags.length?`<p class="bigflag">⚑ ${b.flags.join(' · ')}</p>`:''}
+    ${b.newsy?`<div class="newsbox">
+      <p>這種幅度多半不是技術面走出來的,是消息推的。開盤前先確認事件是什麼、還沒結束的話別套用型態規則。</p>
+      <div class="newslinks">
+        <a href="https://news.google.com/search?q=${q}&hl=zh-TW" target="_blank" rel="noopener">Google 新聞</a>
+        <a href="https://www.coindesk.com/" target="_blank" rel="noopener">CoinDesk</a>
+        <a href="https://www.investing.com/crypto/bitcoin/news" target="_blank" rel="noopener">Investing.com</a>
+      </div></div>`:
+      `<p class="quiet">波動在常態範圍內,沒有偵測到明顯的事件驅動。</p>`}`;
+}
+
+function drawChart(d,timed){
+  const n=150,cut=a=>a.slice(-n);
+  const labels=cut(d.t).map((t,i)=>{
+    if(!timed)return String(i+1);
+    const x=new Date(t);
+    return `${x.getMonth()+1}/${x.getDate()} ${String(x.getHours()).padStart(2,'0')}:00`;
+  });
+  const ds=(data,color,w)=>({data:cut(data),borderColor:color,borderWidth:w,
+    pointRadius:0,tension:0});
+  const cfg={type:'line',data:{labels,datasets:[
+      ds(d.c,'#e3e9ef',2),ds(d.e20,'#f0b429',1.5),ds(d.e50,'#3fa87a',1.5),ds(d.e200,'#6b7b8c',1.5)]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{label:c=>['收盤','EMA20','EMA50','EMA200'][c.datasetIndex]+' '+
+          Math.round(c.parsed.y).toLocaleString()}}},
+      scales:{x:{ticks:{color:'#5c6875',maxTicksLimit:6,font:{family:'JetBrains Mono',size:10}},
+                 grid:{display:false}},
+              y:{position:'right',ticks:{color:'#5c6875',font:{family:'JetBrains Mono',size:10},
+                 callback:v=>v.toLocaleString()},grid:{color:'#1b232c'}}}}};
+  if(chart){chart.data=cfg.data;chart.update('none')}else chart=new Chart(document.getElementById('ch'),cfg);
+}
+
+function parsePasted(txt){
+  const bars=[];
+  for(const L of txt.trim().split(/\r?\n/)){
+    const vals=[];
+    for(const tok of L.trim().split(/[\t,;]+|\s+/).filter(Boolean)){
+      if(/[:\/]/.test(tok))continue;                        // 09:00 或 2026/08/19
+      if(/^\d{4}[.\-]\d{1,2}[.\-]\d{1,2}$/.test(tok))continue; // 2026.08.19
+      if(/^\d{8}$/.test(tok))continue;                      // 20260819
+      const v=parseFloat(tok.replace(/,/g,''));
+      if(!isNaN(v))vals.push(v);
+    }
+    if(vals.length<3)continue;
+    let o,h,l,c;
+    if(vals.length>=4){[o,h,l,c]=vals}else{[h,l,c]=vals;o=c}
+    if(h<l)[h,l]=[l,h];
+    const eps=1e-9;
+    if(!(h+eps>=Math.max(o,c)&&Math.min(o,c)+eps>=l))continue;
+    bars.push({t:bars.length,h,l,c});
+  }
+  return bars;
+}
+
+function renderSingle(tf,d){
+  document.getElementById('head').textContent=d.zh;
+  document.getElementById('subline').textContent=
+    `${tf} 單一時間框架判讀,共 ${d.c.length} 根 K。單框沒有跨週期一致性可比對,結論的可靠度低於三框並看。`;
+  document.getElementById('rows').innerHTML=rowHTML({n:tf},d);
+  document.getElementById('list').innerHTML=(CHECK[d.key]||[]).map(q=>`<li>${q}</li>`).join('');
+  drawChart(d,false);
+}
+
+function runPaste(){
+  const eb=document.getElementById('err');
+  const tf=document.getElementById('ptf').value;
+  const bars=parsePasted(document.getElementById('ptxt').value);
+  if(bars.length<210){
+    eb.innerHTML=`<div class="err">只解析出 <b>${bars.length}</b> 根 K,至少要 210 根才算得出 EMA200。<br>
+      在 MT5 圖表上先按住方向鍵往左捲、載入更多歷史,再重新匯出。</div>`;
+    return;
+  }
+  eb.innerHTML='';
+  renderSingle(tf,analyse(bars));
+  clearInterval(timer);
+  document.getElementById('auto').value='0';
+  document.getElementById('stamp').textContent=
+    `貼上資料 · ${tf} · ${bars.length} 根 K · ${new Date().toLocaleTimeString('zh-TW',{hour12:false})}`;
+}
+async function run(){
+  const btn=document.getElementById('go'),sym=document.getElementById('sym').value.trim().toUpperCase();
+  const eb=document.getElementById('err');
+  if(!sym){eb.innerHTML='<div class="err">請先輸入交易對代號,例如 <b>BTCUSDT</b>。</div>';return}
+  btn.disabled=true;btn.textContent='讀取中';eb.innerHTML='';
+  try{
+    render(await fetchAll(sym));
+    document.getElementById('stamp').textContent=
+      `${sym} · ${new Date().toLocaleTimeString('zh-TW',{hour12:false})} · 來源 ${srcUsed}`;
+  }catch(e){
+    eb.innerHTML=`<div class="err">線上來源讀不到 <b>${sym}</b>。<br>
+      <span class="dg">${diag.join('<br>')}</span><br>
+      這些交易所<b>只有加密貨幣</b>。原油、黃金、外匯、指數請改用下方的「貼上資料」,
+      從 MT5 匯出即可。<br>
+      加密貨幣代號用 <b>BTCUSDT</b>、<b>ETHUSDT</b> 這種格式。</div>`;
+  }finally{btn.disabled=false;btn.textContent='重新讀取'}
+}
+
+function schedule(){
+  clearInterval(timer);
+  const s=+document.getElementById('auto').value;
+  if(s)timer=setInterval(run,s*1000);
+}
+document.getElementById('go').addEventListener('click',run);
+document.getElementById('auto').addEventListener('change',schedule);
+document.getElementById('sym').addEventListener('keydown',e=>{if(e.key==='Enter')run()});
+document.getElementById('prun').addEventListener('click',runPaste);
+document.getElementById('toggle').addEventListener('click',e=>{
+  const box=document.getElementById('pastebox'),open=box.hidden;
+  box.hidden=!open;e.target.setAttribute('aria-expanded',String(open));
+});
+schedule();run();
+</script>
