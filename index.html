@@ -127,6 +127,50 @@ textarea:focus-visible{outline:2px solid var(--read);outline-offset:1px}
   font-family:var(--mono)}
 .foot{margin:34px 0 0;padding-top:16px;border-top:1px solid var(--line);
   font-size:12px;color:var(--faint);max-width:66ch}
+.play{margin:30px 0 0;padding:18px 20px;background:var(--panel);
+  border:1px solid var(--line);border-radius:4px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:16px 24px;margin-top:14px}
+.pcell{border-top:1px solid var(--line);padding-top:10px}
+.pcell h3{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--faint);margin:0 0 6px;font-weight:500}
+.pcell p{margin:0;font-size:13px;color:var(--dim);line-height:1.75}
+.pcell.good h3{color:var(--up)}
+.pcell.warn h3{color:var(--down)}
+
+.docs{margin:34px 0 0}
+.docs>h2{font-size:15px;font-weight:500;margin:0 0 4px}
+.docs details{border-top:1px solid var(--line)}
+.docs details:last-of-type{border-bottom:1px solid var(--line)}
+.docs summary{cursor:pointer;list-style:none;padding:12px 0;font-size:14px;color:var(--ink);
+  display:flex;align-items:center;gap:10px}
+.docs summary::-webkit-details-marker{display:none}
+.docs summary::before{content:"+";font-family:var(--mono);color:var(--read);width:12px}
+.docs details[open] summary::before{content:"\2212"}
+.docs summary em{font-family:var(--mono);font-size:10px;font-style:normal;letter-spacing:.16em;
+  color:var(--faint);margin-left:auto}
+.dbody{padding:0 0 18px 22px;font-size:13.5px;color:var(--dim);max-width:70ch}
+.dbody p{margin:0 0 10px}
+.dbody p:last-child{margin-bottom:0}
+.dbody b{color:var(--ink);font-weight:500}
+.dbody code{font-family:var(--mono);font-size:12px;color:var(--read);
+  background:#1b232c;padding:1px 5px;border-radius:2px}
+.dtable{width:100%;border-collapse:collapse;margin:4px 0 12px;font-size:13px}
+.dtable th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint);font-weight:500;
+  padding:6px 12px 6px 0;border-bottom:1px solid var(--line2)}
+.dtable td{padding:9px 12px 9px 0;border-bottom:1px solid var(--line);
+  color:var(--dim);vertical-align:top}
+.dtable tr:last-child td{border-bottom:0}
+.dtable td:first-child{font-family:var(--mono);font-size:12px;color:var(--ink);
+  white-space:nowrap}
+@media (max-width:560px){
+  .dtable,.dtable tbody,.dtable tr,.dtable td{display:block;width:100%}
+  .dtable thead{display:none}
+  .dtable tr{border-bottom:1px solid var(--line);padding:8px 0}
+  .dtable td{border:0;padding:2px 0}
+  .dtable td:first-child{color:var(--read);margin-bottom:2px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -198,9 +242,130 @@ textarea:focus-visible{outline:2px solid var(--read);outline-offset:1px}
     </div>
   </div>
 
+  <div class="play">
+    <div class="eyebrow">當前狀態的處理原則 · 以 H1 為準</div>
+    <div id="playbox"><p class="quiet">讀取後顯示。</p></div>
+  </div>
+
   <div class="check">
-    <h2>你該自己確認的</h2>
+    <h2>你該自己確認的 <span style="font-family:var(--mono);font-size:11px;color:var(--faint)">依 M15 狀態</span></h2>
     <ul id="list"><li>讀取資料後,這裡會依當前狀態列出檢查項目。</li></ul>
+  </div>
+
+  <div class="docs">
+    <h2>判讀手冊</h2>
+    <p class="hint">這一段是固定內容,不隨行情更新。第一次使用建議整份看過一次,之後只要回來查特定欄位就好。</p>
+
+    <details>
+      <summary>六種狀態是怎麼分出來的<em>regime</em></summary>
+      <div class="dbody">
+        <p>每個時間框架只會被歸到一種狀態。判斷是<b>由上往下依序比對,先符合的先成立</b>,所以順序本身就是優先權——趨勢優先於擠壓,擠壓優先於盤整。</p>
+        <table class="dtable">
+          <thead><tr><th>狀態</th><th>成立條件</th><th>代表什麼</th></tr></thead>
+          <tbody>
+            <tr><td>TREND_UP<br>上升趨勢</td><td>ADX ≥ 25 且 EMA20 &gt; EMA50 &gt; EMA200</td>
+              <td>方向與強度同時具備。回檔通常會被接住,順勢的容錯率最高。</td></tr>
+            <tr><td>TREND_DOWN<br>下降趨勢</td><td>ADX ≥ 25 且 EMA20 &lt; EMA50 &lt; EMA200</td>
+              <td>下跌的鏡像。反彈多半是短暫的,但空頭走勢的波動通常比多頭大。</td></tr>
+            <tr><td>SQUEEZE<br>擠壓待變</td><td>帶寬位階 &lt; 15%(且不構成趨勢)</td>
+              <td>波動壓到近百根的最低區。方向不可知,但變盤的機率在累積。</td></tr>
+            <tr><td>EXPANSION<br>方向未定的擴張</td><td>ADX ≥ 25,但均線糾結</td>
+              <td>有強度卻沒有結構。常見於消息盤、V 轉、或趨勢剛要轉向的當下。</td></tr>
+            <tr><td>RANGE<br>盤整</td><td>ADX &lt; 20</td>
+              <td>沒有趨勢。價格在區間內來回,突破多半是假的。</td></tr>
+            <tr><td>TRANSITION<br>過渡</td><td>以上皆非(ADX 落在 20–25)</td>
+              <td>灰色地帶。強度不足以稱為趨勢,也還沒回到盤整。這是最不該用力的區間。</td></tr>
+          </tbody>
+        </table>
+        <p>注意 <code>EXPANSION</code> 和 <code>TREND</code> 的差別:兩者 ADX 都夠高,差別只在均線有沒有排好。擴張是「動得很兇但還沒選邊」,趨勢是「已經選邊而且在走」。把擴張當成趨勢做,是最常見的一種虧法。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>畫面上那些數字各自在講什麼<em>metrics</em></summary>
+      <div class="dbody">
+        <table class="dtable">
+          <thead><tr><th>欄位</th><th>怎麼算</th><th>怎麼讀</th></tr></thead>
+          <tbody>
+            <tr><td>ADX</td><td>Wilder 14 期,方向性指標的平滑值</td>
+              <td>只講強度、不講方向。&lt;20 沒趨勢;20–25 模糊;25–40 趨勢成立;&gt;40 趨勢已經走了一段,回檔幅度通常會變大。</td></tr>
+            <tr><td>ATR</td><td>真實區間的 14 期平滑,換算成佔價格的百分比</td>
+              <td>這是「一根 K 通常會動多少」。停損、停利、部位大小都該以它為單位,而不是固定點數。ATR 1.5% 時用 0.3% 的停損,等於保證被掃。</td></tr>
+            <tr><td>帶寬位階</td><td>當前布林帶寬在近 100 根裡的百分位</td>
+              <td>0% = 近百根最安靜,100% = 最劇烈。低位階代表能量在累積,高位階代表行情已經在宣洩——追高風險最大的時候通常不是價格最高時,而是這個數字最高時。</td></tr>
+            <tr><td>EMA 排列</td><td>EMA20 / 50 / 200 的相對位置</td>
+              <td>多頭排列、空頭排列、糾結三種。糾結不是壞事,只是代表「還沒有結構」,規則類的做法在這裡命中率最低。</td></tr>
+            <tr><td>區間位置</td><td>價格在近 50 根高低點之間的相對位置</td>
+              <td>就是那條指針。靠近上下緣時報酬風險比最好,卡在中間時最差——不是因為方向不對,而是因為不管往哪走空間都不夠。</td></tr>
+            <tr><td>24H / 7D / 30D</td><td>日線收盤的區間漲跌幅</td>
+              <td>提供「現在這個位置是貴還是便宜」的背景。技術狀態相同,但 30 天已經漲了 40% 和才漲 3%,意義完全不同。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details>
+      <summary>大行情雷達的四個訊號<em>radar</em></summary>
+      <div class="dbody">
+        <p>雷達不判斷方向,只判斷「是不是有事要發生」。四個訊號是獨立的,亮的數量越多,代表行情正在成形或已經在跑。</p>
+        <table class="dtable">
+          <thead><tr><th>訊號</th><th>觸發條件</th><th>意義</th></tr></thead>
+          <tbody>
+            <tr><td>壓縮</td><td>日線帶寬連續 5 根以上落在近 250 根的後 25%</td>
+              <td>前置訊號。它會在行情發生<b>之前</b>亮,但不會告訴你方向,也不會告訴你還要等多久。</td></tr>
+            <tr><td>突破</td><td>價格穿出 H4 近 50 根(不含當根)的最高或最低</td>
+              <td>確認訊號。亮的時候行情已經開跑了,你不是在準備,是在追。刻意排除當根是為了避免「自己創新高、自己確認」的循環論證。</td></tr>
+            <tr><td>三框一致</td><td>H4、H1、M15 同時是趨勢且同方向</td>
+              <td>環境品質訊號。一致時順勢最省力;不一致時,任何方向的規則命中率都會下降。</td></tr>
+            <tr><td>波動放大</td><td>最後一根的實際振幅 &gt; 近 60 根中位數的 2 倍</td>
+              <td>事件訊號。用單根振幅而不是平滑後的 ATR,是因為 ATR 會把急殺攤平、反應太慢。這個亮起時,先去看新聞。</td></tr>
+          </tbody>
+        </table>
+        <p><b>四個全亮不是最好的狀態。</b>它代表壓縮完成、突破確認、週期同步、波動放大——也就是說,最容易吃到的那段已經走完了。訊號從 2 個變 3 個的過程,通常比 4 個全亮更值得注意。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>三個時間框架要怎麼一起看<em>multi-timeframe</em></summary>
+      <div class="dbody">
+        <p>H4 定環境、H1 定方向、M15 定位置。這個分工不能倒過來用——用 M15 決定方向,等於用雜訊決定策略。</p>
+        <table class="dtable">
+          <thead><tr><th>組合</th><th>環境</th><th>該怎麼處理</th></tr></thead>
+          <tbody>
+            <tr><td>三框同狀態</td><td>最單純</td>
+              <td>規則的適用性最高。這種時候可以用比較大的部位,但要接受進場點不會太漂亮。</td></tr>
+            <tr><td>大框趨勢<br>小框盤整</td><td>健康的回檔</td>
+              <td>最理想的進場環境。等 M15 從盤整轉回大框方向的那一刻,而不是在盤整中間猜。</td></tr>
+            <tr><td>大框盤整<br>小框趨勢</td><td>區間內的假動作</td>
+              <td>小框看起來很像行情,但空間被大框的區間卡死。多半是要往區間另一端跑,不是要突破。</td></tr>
+            <tr><td>三框全分歧</td><td>最差</td>
+              <td>雙巴環境。這時候減少動作的效益,遠大於找出更好的進場點。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details>
+      <summary>常見的幾種誤用<em>pitfalls</em></summary>
+      <div class="dbody">
+        <p><b>把狀態當訊號。</b>頁面說「上升趨勢」不等於「現在可以買」。狀態描述的是環境,進場點要另外找;在趨勢裡追高一樣會賠。</p>
+        <p><b>在擠壓時預設方向。</b>擠壓唯一能確定的是「波動會放大」。預設突破方向而且提前布局,是把一個高勝率的觀察變成一個五五波的賭注。</p>
+        <p><b>用固定點數停損。</b>同一個代號,ATR 從 0.5% 變成 2% 是很常見的事。停損距離不隨波動調整,等於在高波動時把自己送出場、在低波動時多賠。</p>
+        <p><b>盤整時做突破、趨勢時做區間。</b>這是最典型的「用錯環境的策略」。判讀盤存在的意義,主要就是避免這一件事。</p>
+        <p><b>把落後指標當預測。</b>ADX、EMA、ATR 全部是落後指標,它們只能告訴你已經發生了什麼。看到 ADX 拉高才確認趨勢,本來就會錯過起漲——這是結構性的代價,不是可以優化掉的缺陷。</p>
+        <p><b>消息盤套用型態規則。</b>當「波動放大」亮起、或急漲急殺被標示出來時,價格是被事件推動的。技術型態在這種時候的統計基礎不成立。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>資料來源、限制,以及貼上資料的格式<em>data</em></summary>
+      <div class="dbody">
+        <p>線上讀取會依序嘗試 Binance 資料站、Binance 主站、Bybit、OKX、Coinbase,任何一個成功就停止,右上角的時間戳會顯示實際用到哪一個。這些交易所<b>只有加密貨幣</b>。</p>
+        <p>原油、黃金、外匯、股票指數請用「貼上資料」。從 MT5 圖表按 Ctrl+S 匯出 CSV,把內容整段貼進來即可。每行至少要有最高、最低、收盤三個數字,<b>由舊到新排列</b>,而且至少 210 行——EMA200 需要這麼多資料才算得準。日期與時間欄位會被自動略過。</p>
+        <p>貼上資料只會分析單一時間框架,所以沒有跨週期一致性可比對,結論的可靠度低於三框並看。日線大方向與雷達也不會顯示。</p>
+        <p><b>已知限制:</b>EMA 用整段資料遞迴計算,前 200 根左右的數值仍在收斂,實務上只看最後一根不受影響。帶寬位階以近 100 根為基準,長期低波動的標的會讓門檻整體偏低。所有計算都在瀏覽器本機完成,沒有任何資料被送出。</p>
+      </div>
+    </details>
   </div>
 
   <p class="foot">這個頁面描述市場已經發生的狀態,不預測方向、不產生買賣訊號。所有指標都是落後指標;進場與否、停損位置、部位大小仍然由你自己決定。</p>
@@ -290,21 +455,80 @@ function analyse(k){
 
   const notes=[];
   if(rank>0.9)notes.push('波動處於近期高位,追單風險大');
+  if(rank<0.1)notes.push('帶寬壓到近百根最低的一成,變盤隨時可能發生');
   if(pos>0.85)notes.push('價格貼近區間上緣');
   if(pos<0.15)notes.push('價格貼近區間下緣');
+  if(pos>0.35&&pos<0.65)notes.push('價格在區間中段,不管往哪走空間都不夠,報酬風險比最差');
   if(atrPct>1.5)notes.push(`ATR 佔價格 ${atrPct.toFixed(2)}%,固定點數停利需放大`);
+  if(atrPct<0.3)notes.push(`ATR 只有 ${atrPct.toFixed(2)}%,扣掉點差與手續費後可操作空間有限`);
+  if(a>=25&&a<30)notes.push('ADX 剛過 25,趨勢只算勉強成立,別急著加大部位');
+  if(a>=40)notes.push('ADX 偏高,趨勢已走一段,回檔幅度通常會超出平常的停損距離');
+  if(a<15)notes.push('ADX 極低,幾乎沒有方向性,突破的可信度很差');
+  if(stack==='糾結')notes.push('均線糾結,尚無明確結構,規則類做法命中率會下降');
 
   return {key,zh,price,adx:a,atrPct,rank,stack,hi,lo,pos,notes,c,e20,e50,e200,
           atr:atr,tr:trueRange(h,l,c),bbw:W,h:h,l:l,t:k.map(r=>r.t)};
 }
 
 const CHECK={
- TREND_UP:['回檔到 EMA20 或 EMA50 有沒有出現止跌型態?','前高被突破後,有沒有回測不破?','大週期結構是否還是高點越高、低點越低?'],
- TREND_DOWN:['反彈到 EMA20/50 有沒有出現受阻?','前低跌破後回測是否失敗?','大週期是否已經跌到明顯支撐?'],
- RANGE:['區間上下緣是否各被測試過兩次以上?','現在的位置離邊界夠近嗎?在中間進場報酬風險比很差','雙向對沖的兩腳停利距離,是否小於區間寬度的一半?'],
- SQUEEZE:['擠壓已經持續幾根 K?越久突破通常越猛','不預設突破方向,等實體收破再說','假突破的停損位置想好了嗎?'],
- EXPANSION:['這根大 K 是消息造成的嗎?消息盤不適用型態規則','等第一次回檔,不要追第一根'],
- TRANSITION:['狀態不明時,最好的動作通常是不動']
+ TREND_UP:['回檔到 EMA20 或 EMA50 有沒有出現止跌型態?','前高被突破後,有沒有回測不破?',
+   '大週期結構是否還是高點越高、低點越低?','ADX 是還在往上,還是已經從高點回落?回落代表趨勢在減速',
+   '這波已經離 EMA50 多遠?乖離過大時,回檔的幅度會超出你的停損',
+   '如果現在才進場,你的停損要放多遠?那個距離還能接受嗎?'],
+ TREND_DOWN:['反彈到 EMA20/50 有沒有出現受阻?','前低跌破後回測是否失敗?',
+   '大週期是否已經跌到明顯支撐?','下跌的波動通常比上漲大,部位有沒有相應縮小?',
+   '有沒有出現量縮止跌、或連續下影線?那是反彈要來的徵兆',
+   '你的停損放在反彈會掃到的地方嗎?'],
+ RANGE:['區間上下緣是否各被測試過兩次以上?','現在的位置離邊界夠近嗎?在中間進場報酬風險比很差',
+   '雙向對沖的兩腳停利距離,是否小於區間寬度的一半?',
+   '區間寬度有幾倍 ATR?小於 3 倍的話,扣掉成本幾乎沒有利潤空間',
+   '這個區間已經走了多久?越久越接近尾聲,突破的破壞力也越大',
+   '如果突破了,你是認賠出場還是反手?先決定,不要臨場想'],
+ SQUEEZE:['擠壓已經持續幾根 K?越久突破通常越猛','不預設突破方向,等實體收破再說',
+   '假突破的停損位置想好了嗎?','擠壓區間的上下緣在哪?那就是突破的判定線',
+   '近期有沒有已知的事件或數據公布?擠壓常常是在等某件事',
+   '突破後第一根的 ATR 會放大,部位大小要用放大後的波動去算,不是現在的'],
+ EXPANSION:['這根大 K 是消息造成的嗎?消息盤不適用型態規則','等第一次回檔,不要追第一根',
+   '均線還是糾結的——這代表方向還沒確立,不要當成趨勢做',
+   '這根的高低點會成為之後的重要參考位,先標出來',
+   '如果是消息推的,事件結束了嗎?還沒結束就別套用型態規則'],
+ TRANSITION:['狀態不明時,最好的動作通常是不動',
+   'ADX 落在 20–25 的灰色地帶,趨勢和盤整的規則都不完全適用',
+   '往前看:上一個明確狀態是什麼?現在是在往回走還是往下一個狀態走?',
+   '真的需要現在有部位嗎?等狀態明確的成本,通常低於猜錯的成本']
+};
+
+const PLAY={
+ TREND_UP:{
+  fit:'順著方向,在回檔到 EMA20/50 且出現止跌跡象時找位置。突破後的回測不破,是容錯率最高的一類進場點。',
+  avoid:'追第一根長紅、在乖離最大時進場、以及「這裡太高了」而去做反向。趨勢裡逆勢的代價通常比想像大。',
+  stop:'放在回檔的低點下方,或 1.5–2 倍 ATR 之外。用固定點數會在波動放大時被無謂掃掉。',
+  fail:'跌破 EMA50 且無法收回、或出現高點沒過前高。這兩件事同時發生時,趨勢的前提已經不成立。'},
+ TREND_DOWN:{
+  fit:'反彈到 EMA20/50 受阻時順勢。跌破前低後的回測失敗,是這個環境裡結構最清楚的位置。',
+  avoid:'接刀、猜底、以及用「跌很多了」當理由進場。下跌段的加速通常發生在看起來已經跌夠的時候。',
+  stop:'放在反彈高點上方,或 1.5–2 倍 ATR 之外。空頭的波動普遍大於多頭,停損要更寬、部位要更小。',
+  fail:'站回 EMA50 之上並守住、或低點不再破前低。結構一旦改變就該退出,不要等確認。'},
+ RANGE:{
+  fit:'靠近區間邊界時做回歸,停利設在區間中線附近。位置比方向重要——在中間做,不管往哪走空間都不夠。',
+  avoid:'做突破。盤整裡的突破多數是假的,而且假突破的反向速度通常比真突破更快。',
+  stop:'放在區間外緣一點點的地方。這是少數可以用結構位、而不是純 ATR 決定停損的環境。',
+  fail:'實體收在區間外並且站穩。這時候狀態會轉成 EXPANSION 或趨勢,區間邏輯就整個失效了。'},
+ SQUEEZE:{
+  fit:'先不動,把上下緣標出來,兩個方向的計畫都寫好。這是唯一「準備」比「執行」重要的狀態。',
+  avoid:'預設方向提前布局。擠壓能確定的只有波動會放大,方向是五五波——提前押注等於把觀察優勢丟掉。',
+  stop:'用突破那一根的另一端。突破後 ATR 會明顯放大,部位大小要用放大後的數字反推,不是用現在的。',
+  fail:'突破後立刻收回擠壓區間內,而且反向穿出另一端。這是典型的假突破,要接受第一次可能會做錯。'},
+ EXPANSION:{
+  fit:'先確認這是不是消息推的。如果是,等事件結束;如果不是,等第一次回檔再看方向有沒有站住。',
+  avoid:'把它當成趨勢做。ADX 高但均線糾結,代表有力道卻沒結構,這是最容易被雙巴的組合。',
+  stop:'這個狀態下停損天生要放得比平常寬,所以部位要相應縮小,不是把停損拉近來省錢。',
+  fail:'其實沒有明確的失敗點——這正是問題所在。沒有結構就沒有清楚的判錯依據,所以部位要小。'},
+ TRANSITION:{
+  fit:'減少動作。ADX 在 20–25 之間,趨勢和區間的規則都只有一半適用,任何策略的命中率都會下降。',
+  avoid:'為了「有在做事」而進場。過渡狀態的手續費和滑價,長期下來比方向做錯還傷。',
+  stop:'如果一定要有部位,用比平常小的規模和比平常寬的停損,並且明確設定時間停損。',
+  fail:'不需要判錯——這個狀態本身就是「還不知道」。等它走成趨勢或盤整再說。'}
 };
 
 const COLOR={TREND_UP:'var(--up)',TREND_DOWN:'var(--down)',SQUEEZE:'var(--read)',
@@ -468,9 +692,26 @@ function render(s){
   document.getElementById('rows').innerHTML=TFS.map(t=>rowHTML(t,s[t.n])).join('');
   const k=s.M15.key;
   document.getElementById('list').innerHTML=(CHECK[k]||[]).map(q=>`<li>${q}</li>`).join('');
+  renderPlay(s.H1.key,s.H1.zh);
   drawChart(s.H1,true);
   if(s.D1)renderBig(bigPicture(s.D1),document.getElementById('sym').value.trim().toUpperCase());
   renderRadar(radar(s));
+}
+
+function renderPlay(key,zh){
+  const p=PLAY[key];
+  if(!p){document.getElementById('playbox').innerHTML='<p class="quiet">無對應原則。</p>';return}
+  document.getElementById('playbox').innerHTML=`
+    <div class="bigrow">
+      <span class="bigword" style="font-size:22px;color:${COLOR[key]}">${zh}</span>
+      <span class="chgs">${key}</span>
+    </div>
+    <div class="pgrid">
+      <div class="pcell good"><h3>比較合理的做法</h3><p>${p.fit}</p></div>
+      <div class="pcell warn"><h3>這個環境的地雷</h3><p>${p.avoid}</p></div>
+      <div class="pcell"><h3>停損怎麼放</h3><p>${p.stop}</p></div>
+      <div class="pcell"><h3>判斷錯了會長怎樣</h3><p>${p.fail}</p></div>
+    </div>`;
 }
 
 function renderRadar(r){
@@ -559,6 +800,7 @@ function renderSingle(tf,d){
     `${tf} 單一時間框架判讀,共 ${d.c.length} 根 K。單框沒有跨週期一致性可比對,結論的可靠度低於三框並看。`;
   document.getElementById('rows').innerHTML=rowHTML({n:tf},d);
   document.getElementById('list').innerHTML=(CHECK[d.key]||[]).map(q=>`<li>${q}</li>`).join('');
+  renderPlay(d.key,d.zh);
   drawChart(d,false);
 }
 
